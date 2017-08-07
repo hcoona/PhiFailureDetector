@@ -1,0 +1,21 @@
+﻿= Phi Failure Detector =
+
+This is a C# implementation to link:http://ieeexplore.ieee.org/abstract/document/1353004/[Phi Accrual Failure Detector] (PDF version link:https://dspace.jaist.ac.jp/dspace/bitstream/10119/4784/1/IS-RR-2004-010.pdf[here])
+
+== Architecture overview ==
+
+3 components:
+
+. Monitoring
+. Interpretation
+. Action
+
+=== Monitoring ===
+
+Arrival window. Usually used with a throttler.
+
+== Interpretation ==
+
+The phi function should be made up according to the heartbeat distribution.
+
+See link:https://issues.apache.org/jira/browse/CASSANDRA-2597[CASSANDRA-2597] for more details.
