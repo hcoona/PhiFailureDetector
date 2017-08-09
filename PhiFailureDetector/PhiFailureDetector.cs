@@ -1,39 +1,43 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace PhiFailureDetector
 {
     public class PhiFailureDetector
     {
-        public delegate double PhiFunc(long timestamp, long sum, double mean, IEnumerable<long> queue);
+        public delegate double PhiFunc(long timestamp, long lastTimestamp, IWithStatistics statistics);
 
-        private readonly FixedSizeQueueWithStatistics<long, long, double> m_queue;
+        private readonly LongIntervalHistory m_arrivalWindow;
+        private readonly long m_initialHeartbeatInterval;
         private readonly PhiFunc m_phiFunc;
 
         private long m_last;
 
-        public PhiFailureDetector(int capacity, PhiFunc phiFunc)
+        public PhiFailureDetector(int capacity, long initialHeartbeatInterval, PhiFunc phiFunc)
         {
-            m_queue = new FixedSizeQueueWithStatistics<long, long, double>(
-                capacity,
-                (s, v) => s + v,
-                (s, v) => s - v,
-                (s, c) => s / c
-            );
+            m_arrivalWindow = new LongIntervalHistory(capacity);
+            m_initialHeartbeatInterval = initialHeartbeatInterval;
             m_phiFunc = phiFunc;
         }
 
         public double Phi()
         {
-            return m_phiFunc(DateTime.UtcNow.ToFileTimeUtc(), m_queue.Sum, m_queue.Avg, m_queue);
+            return m_phiFunc(DateTime.UtcNow.ToFileTimeUtc(), m_last, m_arrivalWindow);
         }
 
         public void Report()
         {
             var now = DateTime.UtcNow.ToFileTimeUtc();
-            m_queue.Enqueue(now);
             m_last = now;
+
+            if (m_arrivalWindow.Count == 0)
+            {
+                m_arrivalWindow.Enqueue(m_initialHeartbeatInterval);
+            }
+            else
+            {
+                var interval = now - m_last;
+                m_arrivalWindow.Enqueue(interval);
+            }
         }
 
         /**
@@ -55,10 +59,10 @@ namespace PhiFailureDetector
          * phi(t) = (t/mean) / log(10)
          * phi(t) = 0.4342945 * t/mean
          */
-        public static double Exponential(long nowTimestamp, long lastTimestamp, long sum, double mean, IEnumerable<long> queue)
+        public static double Exponential(long nowTimestamp, long lastTimestamp, IWithStatistics statistics)
         {
             var duration = nowTimestamp - lastTimestamp;
-            return duration / mean;
+            return duration / statistics.Avg;
         }
 
         /**
@@ -71,11 +75,12 @@ namespace PhiFailureDetector
          * Error is 0.00014 at +- 3.16
          * The calculated value is equivalent to -log10(1 - CDF(y))
          */
-        public static double Normal(long nowTimestamp, long lastTimestamp, long sum, double mean, IEnumerable<long> queue)
+        public static double Normal(long nowTimestamp, long lastTimestamp, IWithStatistics statistics)
         {
             var duration = nowTimestamp - lastTimestamp;
-            var exp = Math.Exp(-duration * (1.5976 + 0.070566 * duration * duration));
-            if (duration > mean)
+            var y = (duration - statistics.Avg) / statistics.StdDeviation;
+            var exp = Math.Exp(-y * (1.5976 + 0.070566 * y * y));
+            if (duration > statistics.Avg)
             {
                 return -Math.Log10(exp / (1 + exp));
             }
