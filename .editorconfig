@@ -4,7 +4,7 @@
 root = true
 
 # Windows-style newlines with a newline ending every file
-[**]
+[**/*]
 end_of_line = crlf
 indent_style = space
 indent_size = 4
@@ -12,13 +12,16 @@ insert_final_newline = true
 charset = utf-8
 trim_trailing_whitespace = true
 
-[**\*.*proj]
+[**/*.*proj]
 indent_style = space
 indent_size = 2
 
 [.travis.yml]
 end_of_line = lf
 indent_style = space
+indent_size = 2
+
+[version.json]
 indent_size = 2
 
 [{.gitignore,.editorconfig}]
