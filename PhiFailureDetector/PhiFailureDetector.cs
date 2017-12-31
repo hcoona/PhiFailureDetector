@@ -1,4 +1,5 @@
-﻿using System;
+using System;
+using Clocks;
 
 namespace PhiFailureDetector
 {
@@ -6,27 +7,33 @@ namespace PhiFailureDetector
     {
         public delegate double PhiFunc(long timestamp, long lastTimestamp, IWithStatistics statistics);
 
+        public PhiFailureDetector(
+            int capacity,
+            long initialHeartbeatInterval,
+            IStopwatchProvider<long> stopwatchProvider,
+            PhiFunc phiFunc)
+        {
+            m_arrivalWindow = new LongIntervalHistory(capacity);
+            m_initialHeartbeatInterval = initialHeartbeatInterval;
+            m_stopwatchProvider = stopwatchProvider;
+            m_phiFunc = phiFunc;
+        }
+
         private readonly LongIntervalHistory m_arrivalWindow;
         private readonly long m_initialHeartbeatInterval;
+        private readonly IStopwatchProvider<long> m_stopwatchProvider;
         private readonly PhiFunc m_phiFunc;
 
         private long m_last;
 
-        public PhiFailureDetector(int capacity, long initialHeartbeatInterval, PhiFunc phiFunc)
-        {
-            m_arrivalWindow = new LongIntervalHistory(capacity);
-            m_initialHeartbeatInterval = initialHeartbeatInterval;
-            m_phiFunc = phiFunc;
-        }
-
         public double Phi()
         {
-            return m_phiFunc(DateTime.UtcNow.ToFileTimeUtc(), m_last, m_arrivalWindow);
+            return m_phiFunc(m_stopwatchProvider.GetTimestamp(), m_last, m_arrivalWindow);
         }
 
         public void Report()
         {
-            var now = DateTime.UtcNow.ToFileTimeUtc();
+            var now = m_stopwatchProvider.GetTimestamp();
             m_last = now;
 
             if (m_arrivalWindow.Count == 0)
