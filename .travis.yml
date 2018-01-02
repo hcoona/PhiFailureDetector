@@ -1,6 +1,6 @@
 language: csharp
 solution: PhiFailureDetector.sln
-dotnet: 1.0.4
+dotnet: 2.0.3
 mono: none
 
 git:
