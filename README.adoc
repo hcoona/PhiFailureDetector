@@ -2,6 +2,8 @@
 
 This is a C# implementation to link:http://ieeexplore.ieee.org/abstract/document/1353004/[Phi Accrual Failure Detector] (PDF version link:https://dspace.jaist.ac.jp/dspace/bitstream/10119/4784/1/IS-RR-2004-010.pdf[here])
 
+**Moved to https://github.com/hcoona/OneDotNet/tree/210d1f7/PhiFailureDetector**
+
 == Getting started ==
 
 The interval time unit is 100-nanosecond because it use `ToFileTimeUtc` generate timestamps.
